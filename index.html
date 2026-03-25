@@ -1,0 +1,592 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Users, Package, FileText, LogOut, Plus, Trash2, 
+  Download, Upload, FileSignature, Menu, X, Printer, Search, CheckCircle2, Image as ImageIcon 
+} from 'lucide-react';
+
+// --- INITIAL MOCK DATA ---
+const INITIAL_USERS = [
+  { id: 1, nip: '000000000000000000', name: 'Administrator', username: 'admin', password: '123', role: 'admin' },
+  { id: 2, nip: '199002022015022002', name: 'Budi Operator', username: 'operator', password: '123', role: 'operator' },
+  { id: 3, nip: '198503032010031003', name: 'Siti Supervisor', username: 'supervisor', password: '123', role: 'supervisor' },
+];
+
+const INITIAL_STOCK = [
+  { code: 'ATK-001', name: 'Kertas HVS A4 80gr', unit: 'Rim', stock: 50 },
+  { code: 'ATK-002', name: 'Tinta Printer Hitam', unit: 'Botol', stock: 15 },
+  { code: 'ATK-003', name: 'Pulpen Faster Hitam', unit: 'Kotak', stock: 30 },
+  { code: 'RT-001', name: 'Kopi Kapal Api', unit: 'Bungkus', stock: 100 },
+];
+
+const INITIAL_REQUESTS = [
+  {
+    id: 'REQ-17012026-001',
+    reqNumber: '0001/32741/PL.710/2026',
+    date: '2026-01-15',
+    requestorName: 'Budi Santoso',
+    items: [
+      { seq: 1, code: 'ATK-001', name: 'Kertas HVS A4 80gr', unit: 'Rim', qty: 2, remark: 'Untuk cetak kuesioner' }
+    ]
+  }
+];
+
+export default function App() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [users, setUsers] = useState(INITIAL_USERS);
+  const [stock, setStock] = useState(INITIAL_STOCK);
+  const [requests, setRequests] = useState(INITIAL_REQUESTS);
+  
+  const [currentView, setCurrentView] = useState('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // Set password admin ke 'admin' sesuai request setelah mount
+  useEffect(() => {
+    setUsers([
+      { id: 1, nip: '000000000000000000', name: 'Administrator Utama', username: 'admin', password: 'admin', role: 'admin' },
+      ...INITIAL_USERS.slice(1)
+    ]);
+  }, []);
+
+  const handleLogin = (username, password) => {
+    const user = users.find(u => u.username === username && u.password === password);
+    if (user) {
+      setCurrentUser(user);
+      setCurrentView('dashboard');
+    } else {
+      alert('Username atau Password salah!');
+    }
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setCurrentView('login');
+  };
+
+  if (!currentUser) {
+    return <LoginScreen onLogin={handleLogin} />;
+  }
+
+  // Role Based Access Control
+  const menuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: <FileSignature size={20} />, roles: ['admin', 'operator', 'supervisor'] },
+    { id: 'users', label: 'Manajemen Akses', icon: <Users size={20} />, roles: ['admin'] },
+    { id: 'stock', label: 'Stok Persediaan', icon: <Package size={20} />, roles: ['admin', 'supervisor'] },
+    { id: 'entry', label: 'Pemakaian Persediaan', icon: <Plus size={20} />, roles: ['admin', 'operator'] },
+    { id: 'reports', label: 'Laporan', icon: <FileText size={20} />, roles: ['admin', 'supervisor'] },
+  ];
+
+  const allowedMenus = menuItems.filter(menu => menu.roles.includes(currentUser.role));
+
+  return (
+    <div className="flex h-screen bg-gray-50 font-sans">
+      <aside className={`bg-slate-800 text-white transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-0 overflow-hidden'} flex flex-col`}>
+        <div className="p-4 bg-slate-900 flex items-center justify-center border-b border-slate-700 min-w-max">
+          <div className="flex flex-col items-center">
+            <h1 className="text-2xl font-bold text-blue-400 tracking-wider">TROLI</h1>
+            <span className="text-xs text-slate-400">BPS Kota Cirebon</span>
+          </div>
+        </div>
+        
+        <div className="p-4 flex flex-col gap-2 flex-grow min-w-max">
+          <div className="mb-6 p-3 bg-slate-700 rounded-lg">
+            <p className="text-sm font-semibold">{currentUser.name}</p>
+            <p className="text-xs text-slate-300 capitalize">Role: {currentUser.role}</p>
+          </div>
+          
+          <nav className="flex flex-col gap-1">
+            {allowedMenus.map(menu => (
+              <button key={menu.id} onClick={() => setCurrentView(menu.id)}
+                className={`flex items-center gap-3 p-3 rounded-lg text-left transition-colors ${currentView === menu.id ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white'}`}>
+                {menu.icon} <span className="font-medium">{menu.label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+        
+        <div className="p-4 min-w-max">
+          <button onClick={handleLogout} className="flex items-center gap-3 p-3 w-full rounded-lg text-red-400 hover:bg-slate-700 transition-colors">
+            <LogOut size={20} /> <span className="font-medium">Keluar</span>
+          </button>
+        </div>
+      </aside>
+
+      <main className="flex-1 flex flex-col overflow-hidden relative">
+        <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4">
+          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-600">
+            {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+          <div className="font-semibold text-sm text-gray-600">Badan Pusat Statistik Kota Cirebon</div>
+        </header>
+
+        <div className="flex-1 overflow-auto p-6 relative">
+          {currentView === 'dashboard' && <DashboardView user={currentUser} stock={stock} requests={requests} />}
+          {currentView === 'users' && <UserManagement users={users} setUsers={setUsers} />}
+          {currentView === 'stock' && <StockManagement stock={stock} setStock={setStock} />}
+          {currentView === 'entry' && <EntryRequest stock={stock} setStock={setStock} requests={requests} setRequests={setRequests} />}
+          {currentView === 'reports' && <ReportsView requests={requests} />}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// ==========================================
+// VIEWS COMPONENTS
+// ==========================================
+
+function LoginScreen({ onLogin }) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
+  return (
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-200">
+        <div className="text-center mb-8">
+          <div className="bg-blue-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <Package className="text-white" size={32} />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-800">TROLI</h1>
+          <p className="text-sm font-semibold text-blue-600 mt-1">BPS Kota Cirebon</p>
+        </div>
+
+        <form onSubmit={(e) => { e.preventDefault(); onLogin(username, password); }} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+            <input type="text" required className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" 
+                   value={username} onChange={(e) => setUsername(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <input type="password" required className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" 
+                   value={password} onChange={(e) => setPassword(e.target.value)} />
+          </div>
+          <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg mt-4">Login</button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function DashboardView({ user, stock, requests }) {
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-gray-800">Selamat Datang, {user.name}!</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
+          <div className="bg-blue-100 p-4 rounded-lg text-blue-600"><Package size={32} /></div>
+          <div><p className="text-sm text-gray-500">Total Jenis Barang</p><p className="text-3xl font-bold">{stock.length}</p></div>
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
+          <div className="bg-amber-100 p-4 rounded-lg text-amber-600"><Search size={32} /></div>
+          <div><p className="text-sm text-gray-500">Stok Menipis (&lt;10)</p><p className="text-3xl font-bold">{stock.filter(s => s.stock < 10).length}</p></div>
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
+          <div className="bg-emerald-100 p-4 rounded-lg text-emerald-600"><FileText size={32} /></div>
+          <div><p className="text-sm text-gray-500">Total Transaksi</p><p className="text-3xl font-bold">{requests.length}</p></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UserManagement({ users, setUsers }) {
+  const [formData, setFormData] = useState({ nip: '', name: '', username: '', password: '', role: 'operator' });
+  
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setUsers([...users, { ...formData, id: Date.now() }]);
+    setFormData({ nip: '', name: '', username: '', password: '', role: 'operator' });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <h3 className="text-lg font-bold mb-4">Tambah Pengguna (Manajemen Akses)</h3>
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <input type="text" placeholder="NIP" required className="input-field" value={formData.nip} onChange={e => setFormData({...formData, nip: e.target.value})} />
+          <input type="text" placeholder="Nama Lengkap" required className="input-field" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+          <input type="text" placeholder="Username" required className="input-field" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} />
+          <input type="password" placeholder="Password" required className="input-field" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+          <select className="input-field" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
+            <option value="operator">Operator (Entry Saja)</option>
+            <option value="supervisor">Supervisor (Stok & Laporan)</option>
+            <option value="admin">Administrator (Penuh)</option>
+          </select>
+          <button type="submit" className="bg-blue-600 text-white py-2 px-4 rounded-lg">Simpan</button>
+        </form>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <table className="w-full text-left">
+          <thead className="bg-slate-50 border-b">
+            <tr><th className="p-4">NIP</th><th className="p-4">Nama</th><th className="p-4">Username</th><th className="p-4">Level</th><th className="p-4">Aksi</th></tr>
+          </thead>
+          <tbody>
+            {users.map(u => (
+              <tr key={u.id} className="border-b hover:bg-slate-50">
+                <td className="p-4">{u.nip}</td><td className="p-4">{u.name}</td><td className="p-4">{u.username}</td>
+                <td className="p-4"><span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-700">{u.role}</span></td>
+                <td className="p-4"><button onClick={() => setUsers(users.filter(x => x.id !== u.id))} className="text-red-500"><Trash2 size={18}/></button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function StockManagement({ stock, setStock }) {
+  const [formData, setFormData] = useState({ code: '', name: '', unit: '', stock: '' });
+
+  const handleManualAdd = (e) => {
+    e.preventDefault();
+    if(stock.find(s => s.code === formData.code)) return alert('Kode sudah ada!');
+    setStock([...stock, { ...formData, stock: parseInt(formData.stock) }]);
+    setFormData({ code: '', name: '', unit: '', stock: '' });
+  };
+
+  const handleCSVUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const rows = event.target.result.split('\n');
+        const newStock = [...stock];
+        for(let i=1; i<rows.length; i++) {
+            const cols = rows[i].split(',');
+            if(cols.length >= 4 && !newStock.find(s => s.code === cols[0].trim())){
+                newStock.push({ code: cols[0].trim(), name: cols[1].trim(), unit: cols[2].trim(), stock: parseInt(cols[3].trim()) || 0 });
+            }
+        }
+        setStock(newStock);
+        alert('Data berhasil diimpor!');
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-xl border border-gray-200">
+          <h3 className="text-lg font-bold mb-4">Input Persediaan Manual</h3>
+          <form onSubmit={handleManualAdd} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <input type="text" required className="input-field" placeholder="Kode Barang" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} />
+              <input type="text" required className="input-field" placeholder="Nama Barang" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+              <input type="text" required className="input-field" placeholder="Satuan" value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} />
+              <input type="number" required className="input-field" placeholder="Jumlah" value={formData.stock} onChange={e => setFormData({...formData, stock: e.target.value})} />
+            </div>
+            <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg">Tambah Stok</button>
+          </form>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl border border-gray-200 flex flex-col items-center justify-center border-dashed border-2">
+          <Upload className="text-gray-400 mb-2" size={32} />
+          <h3 className="font-bold mb-2">Upload File Excel (CSV)</h3>
+          <label className="cursor-pointer bg-slate-800 text-white py-2 px-4 rounded-lg inline-flex items-center gap-2">
+            Pilih File CSV <input type="file" accept=".csv" className="hidden" onChange={handleCSVUpload} />
+          </label>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <table className="w-full text-left">
+          <thead className="bg-slate-50 border-b">
+            <tr><th className="p-4">Kode</th><th className="p-4">Nama Barang</th><th className="p-4">Satuan</th><th className="p-4">Stok</th><th className="p-4">Aksi</th></tr>
+          </thead>
+          <tbody>
+            {stock.map(s => (
+              <tr key={s.code} className="border-b">
+                <td className="p-4">{s.code}</td><td className="p-4">{s.name}</td><td className="p-4">{s.unit}</td>
+                <td className="p-4 font-bold">{s.stock}</td>
+                <td className="p-4"><button onClick={() => setStock(stock.filter(x => x.code !== s.code))} className="text-red-500"><Trash2 size={18}/></button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function EntryRequest({ stock, setStock, requests, setRequests }) {
+  const currentYear = new Date().getFullYear();
+  const nextNumber = String(requests.length + 1).padStart(4, '0');
+  const generatedReqNum = `${nextNumber}/32741/PL.710/${currentYear}`;
+
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [requestorName, setRequestorName] = useState('');
+  const [items, setItems] = useState([{ id: Date.now(), seq: 1, code: '', name: '', unit: '', qty: 1, remark: '' }]);
+
+  // Fitur Suggestion & Autofill berdasarkan Nama Barang
+  const handleNameChange = (id, value) => {
+    setItems(items.map(item => {
+      if (item.id === id) {
+        const updatedItem = { ...item, name: value };
+        const selectedStock = stock.find(s => s.name === value);
+        if (selectedStock) {
+          updatedItem.code = selectedStock.code;
+          updatedItem.unit = selectedStock.unit;
+        } else {
+          updatedItem.code = '';
+          updatedItem.unit = '';
+        }
+        return updatedItem;
+      }
+      return item;
+    }));
+  };
+
+  const handleItemChange = (id, field, value) => {
+      setItems(items.map(item => item.id === id ? { ...item, [field]: value } : item));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    let error = '';
+    const tempStock = JSON.parse(JSON.stringify(stock)); 
+    
+    items.forEach(reqItem => {
+        if(!reqItem.code) error = `Barang '${reqItem.name}' tidak ditemukan di sistem. Gunakan suggestion.`;
+        const s = tempStock.find(x => x.code === reqItem.code);
+        if(s) {
+            if(reqItem.qty > s.stock) error = `Stok tidak cukup untuk ${s.name}. Tersedia: ${s.stock}`;
+            s.stock -= reqItem.qty; 
+        }
+    });
+
+    if(error) return alert(error);
+
+    setStock(tempStock);
+    setRequests([{ id: `REQ-${Date.now()}`, reqNumber: generatedReqNum, date, requestorName, items: items.map(({ id, ...rest }) => rest) }, ...requests]);
+    alert('Berhasil disimpan!');
+    setRequestorName('');
+    setItems([{ id: Date.now(), seq: 1, code: '', name: '', unit: '', qty: 1, remark: '' }]);
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-xl border border-gray-200">
+      <h2 className="text-xl font-bold mb-4">Pemakaian Persediaan</h2>
+      
+      {/* Datalist untuk Suggestion Nama Barang */}
+      <datalist id="stock-names">
+        {stock.map(s => <option key={s.code} value={s.name} />)}
+      </datalist>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded border">
+          <input type="text" readOnly className="input-field bg-gray-200" value={generatedReqNum} />
+          <input type="date" required className="input-field" value={date} onChange={e => setDate(e.target.value)} />
+          <input type="text" required placeholder="Nama Peminta" className="input-field" value={requestorName} onChange={e => setRequestorName(e.target.value)} />
+        </div>
+
+        <table className="w-full text-left">
+            <thead className="bg-slate-800 text-white text-sm">
+                <tr><th className="p-2 w-10">No</th><th className="p-2 w-64">Ketik Nama Barang</th><th className="p-2 w-32">Kode (Auto)</th><th className="p-2 w-24">Satuan</th><th className="p-2 w-20">Jml</th><th className="p-2">Ket</th><th className="p-2 w-10"></th></tr>
+            </thead>
+            <tbody>
+                {items.map((item, idx) => (
+                    <tr key={item.id}>
+                        <td className="p-2">{idx+1}</td>
+                        <td className="p-2">
+                            {/* Input Nama Barang dengan Suggestion */}
+                            <input list="stock-names" required placeholder="Ketik nama..." className="input-field" value={item.name} onChange={(e) => handleNameChange(item.id, e.target.value)} />
+                        </td>
+                        <td className="p-2"><input type="text" readOnly className="input-field bg-gray-100" value={item.code} /></td>
+                        <td className="p-2"><input type="text" readOnly className="input-field bg-gray-100" value={item.unit} /></td>
+                        <td className="p-2"><input type="number" min="1" required className="input-field" value={item.qty} onChange={(e) => handleItemChange(item.id, 'qty', parseInt(e.target.value))} /></td>
+                        <td className="p-2"><input type="text" required className="input-field" value={item.remark} onChange={(e) => handleItemChange(item.id, 'remark', e.target.value)} /></td>
+                        <td className="p-2"><button type="button" onClick={() => setItems(items.filter(i => i.id !== item.id))} className="text-red-500"><Trash2 size={18}/></button></td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+        
+        <div className="flex justify-between">
+            <button type="button" onClick={() => setItems([...items, { id: Date.now(), seq: items.length+1, code: '', name: '', unit: '', qty: 1, remark: '' }])} className="text-blue-600 bg-blue-50 px-4 py-2 rounded">+ Tambah Barang</button>
+            <button type="submit" className="bg-emerald-600 text-white px-6 py-2 rounded font-bold">Simpan</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function ReportsView({ requests }) {
+  const [selectedMonth, setSelectedMonth] = useState('');
+  const [printData, setPrintData] = useState(null);
+
+  const filteredRequests = requests.filter(req => {
+      if(!selectedMonth) return true;
+      const m = String(new Date(req.date).getMonth() + 1).padStart(2, '0');
+      return m === selectedMonth;
+  });
+
+  const exportToWord = () => {
+      const el = document.getElementById('printable-area');
+      const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Doc</title></head><body>${el.innerHTML}</body></html>`;
+      const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `Laporan_${printData.reqNumber.replace(/\//g,'-')}.doc`;
+      link.click();
+  };
+
+  const exportToPNG = () => {
+    // Dynamic load html2canvas untuk menjamin fitur export PNG
+    if (!window.html2canvas) {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        script.onload = () => doExportPNG();
+        document.head.appendChild(script);
+    } else {
+        doExportPNG();
+    }
+  };
+
+  const doExportPNG = () => {
+      const el = document.getElementById('printable-area');
+      // Hide buttons inside if any, but they are outside in this layout
+      window.html2canvas(el, { scale: 2, useCORS: true }).then(canvas => {
+          const link = document.createElement('a');
+          link.download = `Laporan_${printData?.reqNumber?.replace(/\//g,'-')}.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+      });
+  };
+
+  return (
+    <div className="space-y-6">
+      {printData && (
+          <div className="fixed inset-0 bg-gray-900 bg-opacity-95 z-50 flex flex-col items-center overflow-y-auto pt-10 pb-20 print:bg-white print:pt-0 print:block">
+              <div className="bg-white w-full max-w-4xl min-h-screen p-10 relative print:shadow-none print:p-0 print:w-full" id="printable-area" style={{fontFamily: 'Arial, sans-serif'}}>
+                  
+                  {/* KOP SURAT MATCHING GAMBAR */}
+                  <div className="flex items-center mb-6 border-b-[3px] border-black pb-4 print:border-b-[3px]">
+                      {/* Logo Area - Simplified SVG representation of BPS Logo for offline reliability */}
+                      <div className="w-28 h-20 mr-6 flex-shrink-0 flex items-center justify-center relative">
+                         <svg viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                            <path d="M40 30 L60 30 L60 60 L40 60 Z" fill="#3B82F6"/>
+                            <path d="M20 50 L40 50 L40 80 L20 80 Z" fill="#3B82F6"/>
+                            <path d="M65 35 L85 35 L85 65 L65 65 Z" fill="#F97316"/>
+                            <path d="M50 70 L70 70 L70 95 L50 95 Z" fill="#84CC16"/>
+                            <path d="M10 75 Q 60 110 110 50" stroke="#3B82F6" strokeWidth="2" fill="none"/>
+                            <path d="M15 45 Q 60 10 105 70" stroke="#F97316" strokeWidth="1.5" fill="none"/>
+                        </svg>
+                      </div>
+                      <div className="flex-grow text-left">
+                          <h1 className="text-3xl font-bold text-black italic uppercase leading-tight" style={{fontFamily: 'Arial Black, Impact, sans-serif', letterSpacing: '-0.5px'}}>BADAN PUSAT STATISTIK</h1>
+                          <h1 className="text-3xl font-bold text-black italic uppercase leading-tight mb-1" style={{fontFamily: 'Arial Black, Impact, sans-serif', letterSpacing: '-0.5px'}}>KOTA CIREBON</h1>
+                          <p className="text-[15px] text-black leading-tight mt-2">Jl. Sekarkemuning I, Evakuasi, Kota Cirebon</p>
+                          <p className="text-[15px] text-black leading-tight">Homepage : <a href="#" className="text-blue-800 underline">www.cirebonkota.bps.go.id</a>, Email : bps3274@bps.go.id</p>
+                      </div>
+                  </div>
+
+                  {/* KONTEN */}
+                  <div className="mt-6 px-4">
+                      <table className="mb-6 text-[15px]">
+                          <tbody>
+                              <tr><td className="w-40 font-semibold">Tanggal</td><td>: {printData.date}</td></tr>
+                              <tr><td className="w-40 font-semibold">Nama</td><td>: {printData.requestorName}</td></tr>
+                              <tr><td className="w-40 font-semibold">Nomor Persediaan</td><td>: {printData.reqNumber}</td></tr>
+                          </tbody>
+                      </table>
+
+                      <table className="w-full border-collapse border border-black text-[14px] mb-16">
+                          <thead>
+                              <tr className="bg-gray-100">
+                                  <th className="border border-black p-2 text-center w-12">No</th>
+                                  <th className="border border-black p-2 text-center w-32">Kode Barang</th>
+                                  <th className="border border-black p-2">Nama Barang</th>
+                                  <th className="border border-black p-2 text-center w-24">Satuan</th>
+                                  <th className="border border-black p-2 text-center w-24">Jumlah</th>
+                                  <th className="border border-black p-2">Keterangan</th>
+                              </tr>
+                          </thead>
+                          <tbody>
+                              {printData.items.map(item => (
+                                  <tr key={item.seq}>
+                                      <td className="border border-black p-2 text-center">{item.seq}</td>
+                                      <td className="border border-black p-2 text-center">{item.code}</td>
+                                      <td className="border border-black p-2">{item.name}</td>
+                                      <td className="border border-black p-2 text-center">{item.unit}</td>
+                                      <td className="border border-black p-2 text-center">{item.qty}</td>
+                                      <td className="border border-black p-2">{item.remark}</td>
+                                  </tr>
+                              ))}
+                          </tbody>
+                      </table>
+
+                      {/* TANDA TANGAN 3 KOLOM SESUAI INSTRUKSI */}
+                      <div className="flex justify-between text-[14px] px-2 text-center">
+                          <div className="w-1/3">
+                              <p className="mb-20">Operator Persediaan</p>
+                              <p className="font-bold underline">Muhammad Maftuhin</p>
+                              <p>NIP. 198612122012111001</p>
+                          </div>
+                          <div className="w-1/3">
+                              <p className="mb-20">Kasubbag Umum</p>
+                              <p className="font-bold underline">Muhammad Jaka</p>
+                              <p>NIP. 198809062010121006</p>
+                          </div>
+                          <div className="w-1/3">
+                              <p>Cirebon, {new Date(printData.date).toLocaleDateString('id-ID')}</p>
+                              <p className="mb-[62px]">Yang Menerima,</p>
+                              <p className="font-bold underline">{printData.requestorName}</p>
+                              <p>NIP. </p>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+
+              {/* ACTION BUTTONS */}
+              <div className="fixed bottom-6 flex gap-4 bg-white p-4 rounded-full shadow-2xl print:hidden border">
+                  <button onClick={() => setPrintData(null)} className="px-4 py-2 bg-gray-200 rounded-full flex items-center gap-2"><X size={16}/> Tutup</button>
+                  <button onClick={() => window.print()} className="px-4 py-2 bg-red-600 text-white rounded-full flex items-center gap-2"><Printer size={16}/> PDF / Print</button>
+                  <button onClick={exportToWord} className="px-4 py-2 bg-blue-600 text-white rounded-full flex items-center gap-2"><Download size={16}/> Word</button>
+                  <button onClick={exportToPNG} className="px-4 py-2 bg-purple-600 text-white rounded-full flex items-center gap-2"><ImageIcon size={16}/> PNG</button>
+              </div>
+          </div>
+      )}
+
+      {/* TAMPILAN FILTER NORMAL */}
+      <div className="bg-white p-6 rounded-xl border border-gray-200">
+        <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold">Laporan Transaksi</h2>
+            <select className="input-field w-48" value={selectedMonth} onChange={e=>setSelectedMonth(e.target.value)}>
+                <option value="">Semua Bulan</option>
+                <option value="01">Januari</option><option value="02">Februari</option><option value="03">Maret</option>
+                <option value="04">April</option><option value="05">Mei</option><option value="06">Juni</option>
+                <option value="07">Juli</option><option value="08">Agustus</option><option value="09">September</option>
+                <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+            </select>
+        </div>
+
+        <table className="w-full text-left">
+            <thead className="bg-slate-800 text-white">
+                <tr><th className="p-3">Tgl</th><th className="p-3">Nomor</th><th className="p-3">Nama Peminta</th><th className="p-3">Aksi</th></tr>
+            </thead>
+            <tbody>
+                {filteredRequests.map(req => (
+                    <tr key={req.id} className="border-b">
+                        <td className="p-3">{req.date}</td><td className="p-3">{req.reqNumber}</td><td className="p-3">{req.requestorName}</td>
+                        <td className="p-3"><button onClick={() => setPrintData(req)} className="bg-blue-100 text-blue-700 px-3 py-1 rounded">Lihat & Export</button></td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+      </div>
+
+      <style dangerouslySetInnerHTML={{__html: `
+        .input-field { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; outline: none; }
+        .input-field:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+        @media print {
+            body * { visibility: hidden; }
+            #printable-area, #printable-area * { visibility: visible; }
+            #printable-area { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 1cm !important; }
+        }
+      `}} />
+    </div>
+  );
+}
